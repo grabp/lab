@@ -1,0 +1,16 @@
+[Unit]
+Description=Portainer Agent
+After=local-fs.target
+
+[Container]
+Image=docker.io/portainer/agent:2.33.6
+ContainerName=portainer_agent
+PublishPort=9001:9001
+NoNewPrivileges=no
+Volume=/run/podman/podman.sock:/var/run/docker.sock
+Volume=/var/lib/containers/storage/volumes:/var/lib/docker/volumes
+Volume=/:/host
+
+[Install]
+# Start by default on boot
+WantedBy=multi-user.target default.target
