@@ -1,8 +1,10 @@
 Next: 
-add deploy-rs or colmen
+
+
+add Proxmox API automation safely
 
 validate missing secrets at eval time
 
-script rotation end-to-end
-rotate secrets values safely
 cloud init?
+
+Write a main README.md file that should contain instructons for common scenaros like adding new VM, deploying it,

@@ -5,6 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     nixos-generators.url = "github:nix-community/nixos-generators";
     sops-nix.url = "github:Mic92/sops-nix";
+    deploy-rs.url = "github:serokell/deploy-rs";
   };
 
   outputs =
@@ -22,26 +23,10 @@
       # Read ./hosts directory
       hostsDir = builtins.readDir ./hosts;
 
-      # Keep only directories
-      hostNames = builtins.attrNames (lib.filterAttrs (_: type: type == "directory") hostsDir);
-
-      defaultProxmox = {
-        cores = 1;
-        memory = 1024;
-        diskSize = 10 * 1024;
-        tags = [ "nixos" ];
-        net = {
-          model = "virtio";
-          bridge = "vmbr0";
-        };
-      };
-
-      readProxmoxMeta =
-        name:
-        let
-          path = ./hosts/${name}/proxmox.nix;
-        in
-        if builtins.pathExists path then defaultProxmox // import path else defaultProxmox;
+      # Keep only directories except for template/
+      hostNames = lib.attrNames (
+        lib.filterAttrs (name: type: type == "directory" && name != "template") hostsDir
+      );
 
       # Helper to build a nixosSystem for a host
       mkHost =
@@ -63,9 +48,6 @@
       # ---- Proxmox images (nixos-generators)
       packages.${system} = lib.genAttrs hostNames (
         name:
-        let
-          meta = readProxmoxMeta name;
-        in
         nixos-generators.nixosGenerate {
           inherit system;
           specialArgs = { inherit inputs; };
@@ -73,17 +55,27 @@
           modules = [
             {
               networking.hostName = name;
-              virtualisation.diskSize = meta.diskSize;
             }
             ./hosts/${name}/configuration.nix
           ];
+        }
+      );
 
-          # proxmox = {
-          #   inherit (meta) cores memory;
-          #   name = meta.name or name;
-          #   net0 = "model=${meta.net.model},bridge=${meta.net.bridge}";
-          #   tags = lib.concatStringsSep ";" meta.tags;
-          # };
+      # ---- deploy-rs definitions
+      deploy.nodes = lib.genAttrs hostNames (
+        name:
+        let
+          cfg = self.nixosConfigurations.${name}.config;
+          ip = cfg.my.networking.staticIPv4.address or name; # fallback (DHCP / DNS)
+        in
+        {
+          hostname = ip;
+          sshUser = "ops";
+
+          profiles.system = {
+            user = "root";
+            path = inputs.deploy-rs.lib.${system}.activate.nixos self.nixosConfigurations.${name};
+          };
         }
       );
     };
