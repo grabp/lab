@@ -19,6 +19,7 @@ new:
 	@test -n "$(HOST)" || (echo "HOST required"; exit 1)
 	mkdir -p hosts/$(HOST)
 	cp hosts/template/configuration.nix hosts/$(HOST)/configuration.nix
+	cp hosts/template/proxmox.nix hosts/$(HOST)/proxmox.nix
 	cp hosts/template/secrets.nix hosts/$(HOST)/secrets.nix
 	sops secrets/hosts/$(HOST).yaml
 

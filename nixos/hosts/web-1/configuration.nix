@@ -7,6 +7,8 @@
     ../../modules/roles/web.nix
 
     ../../modules/profiles/static-ip.nix
+
+    ./secrets.nix
   ];
 
   my.networking.staticIPv4 = {

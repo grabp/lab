@@ -22,7 +22,6 @@
       self,
       nixpkgs,
       nixos-generators,
-      sops-nix,
       ...
     }@inputs:
     let
