@@ -3,8 +3,17 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
-    nixos-generators.url = "github:nix-community/nixos-generators";
-    sops-nix.url = "github:Mic92/sops-nix";
+
+    nixos-generators = {
+      url = "github:nix-community/nixos-generators";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     deploy-rs.url = "github:serokell/deploy-rs";
   };
 
@@ -39,6 +48,14 @@
             ./hosts/${name}/configuration.nix
           ];
         };
+
+      # Helper to read proxmox.nix data file
+      readProxmox =
+        name:
+        let
+          path = ./hosts/${name}/proxmox.nix;
+        in
+        if builtins.pathExists path then import path else { };
 
     in
     {
@@ -78,5 +95,8 @@
           };
         }
       );
+
+      # ---- proxmox VM metadata
+      proxmox = lib.genAttrs hostNames (name: readProxmox name);
     };
 }

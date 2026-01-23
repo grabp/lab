@@ -11,6 +11,7 @@ help:
 	@echo "  make deploy HOST=web-2"
 	@echo "  make deploy-all"
 	@echo "  make check"
+	@echo "  make proxmox-create HOST=web-2"
 
 ## 1️⃣ Declare a new VM
 .PHONY: new
@@ -53,3 +54,10 @@ deploy-all:
 check:
 	nix flake check
 	nix eval .#deploy.nodes >/dev/null
+
+## 6 proxmox create
+.PHONY: proxmox-create
+proxmox-create:
+	@test -n "$(HOST)" || (echo "HOST required"; exit 1)
+	nix build .#$(HOST)
+	./scripts/proxmox-create.sh $(HOST)
