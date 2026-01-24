@@ -3,8 +3,8 @@
   node = "10.0.0.50";
 
   # Resource limits - optimized for pi-hole
-  cores = 2; # Pi-hole can benefit from 2 cores for better performance
-  memory = 1024; # 1GB RAM recommended for pi-hole with blocklists
+  cores = 1; # Pi-hole can benefit from 2 cores for better performance
+  memory = 512; # 1GB RAM recommended for pi-hole with blocklists
 
   # Network bridge (network IP/gateway configured in configuration.nix)
   bridge = "vmbr0";

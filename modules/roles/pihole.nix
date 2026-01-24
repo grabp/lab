@@ -4,8 +4,18 @@ let
   secretPath = if hasPasswordSecret then config.sops.secrets.pihole_admin_password.path else null;
 in
 {
+  imports = [
+    ./pihole-adlists.nix
+  ];
   services.pihole-ftl = {
     enable = true;
+    
+    # Blocklists are configured via ./pihole-adlists.nix module
+    # If Meta products (Instagram, Facebook) have issues, allowlist domains:
+    # - CLI: pihole -w domain.com
+    # - Web UI: Allowlist → Add domain
+    # Common domains: facebook.com, fbcdn.net, instagram.com, cdninstagram.com
+    
     settings = {
       DNS1 = "8.8.8.8";
       DNS2 = "8.8.4.4";
@@ -15,6 +25,14 @@ in
       QUERY_LOGGING = "true";
       INSTALL_WEB_SERVER = "true";
       INSTALL_WEB_INTERFACE = "true";
+      # Add upstream DNS servers as dnsmasq directives
+      # DNS1/DNS2 settings alone don't configure dnsmasq upstream servers
+      misc = {
+        dnsmasq_lines = [
+          "server=8.8.8.8"
+          "server=8.8.4.4"
+        ];
+      };
     };
   };
 
@@ -48,37 +66,51 @@ in
     };
   };
 
-  systemd.services.pihole-ftl = lib.mkIf hasPasswordSecret {
-    serviceConfig = {
-      # Use - prefix to make EnvironmentFile optional (won't fail if file doesn't exist)
-      EnvironmentFile = "-/run/pihole-password.env";
-      LogLevelMax = "notice";
-    };
-    # Wait for password setup and secrets mount
-    after = [ "pihole-password-setup.service" "run-secrets.d.mount" ];
-    wants = [ "pihole-password-setup.service" "run-secrets.d.mount" ];
-  };
+  # Configure pihole-ftl service
+  systemd.services.pihole-ftl = lib.mkMerge [
+    {
+      # Remove CAP_SYS_TIME capability - LXC containers can't adjust system time
+      # Time is inherited from the Proxmox host
+      serviceConfig.AmbientCapabilities = lib.mkForce [
+        "CAP_NET_BIND_SERVICE"
+        "CAP_NET_RAW"
+        "CAP_NET_ADMIN"
+        "CAP_SYS_NICE"
+        "CAP_IPC_LOCK"
+        "CAP_CHOWN"
+      ];
+    }
+    (lib.mkIf hasPasswordSecret {
+      serviceConfig = {
+        # Use - prefix to make EnvironmentFile optional (won't fail if file doesn't exist)
+        EnvironmentFile = "-/run/pihole-password.env";
+        LogLevelMax = "notice";
+      };
+      # Wait for password setup and secrets mount
+      after = [ "pihole-password-setup.service" "run-secrets.d.mount" ];
+      wants = [ "pihole-password-setup.service" "run-secrets.d.mount" ];
+    })
+  ];
 
   my.firewall.extraTCPPorts = [ 53 80 443 ];
   my.firewall.extraUDPPorts = [ 53 ];
 
   # Configure systemd-resolved to work with pihole
   # Disable DNS stub listener to free up port 53 for pihole-FTL
-  # Configure systemd-resolved to use pihole as upstream DNS
   services.resolved = {
     enable = true;
     # Disable DNS stub listener on port 53 via extraConfig - pihole needs this port
     extraConfig = ''
       DNSStubListener=no
+      DNS=8.8.8.8 8.8.4.4
     '';
-    # Fallback DNS servers for systemd-resolved itself (in case pihole isn't ready)
-    fallbackDns = [ "8.8.8.8" "8.8.4.4" ];
+    # Fallback DNS servers
+    fallbackDns = [ "1.1.1.1" "1.0.0.1" ];
     # Don't use LLMNR - let pihole handle DNS
     llmnr = "false";
   };
 
-  # Configure /etc/resolv.conf to point to pihole
-  # When DNSStubListener is no, systemd-resolved will create resolv.conf pointing to the DNS servers we configured
+  # Configure /etc/resolv.conf to point to pihole for client queries
+  # systemd-resolved will use the DNS servers above, while applications use pihole
   networking.nameservers = [ "127.0.0.1" ];
 }
-
