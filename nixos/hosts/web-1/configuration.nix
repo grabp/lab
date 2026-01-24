@@ -2,7 +2,12 @@
   imports = [
     ../../modules/platform/proxmox.nix
 
-    ../../modules/base
+    ../../modules/base/defaults.nix
+    ../../modules/base/firewall.nix
+    ../../modules/base/nix.nix
+    ../../modules/base/sops-common.nix
+    ../../modules/base/ssh.nix
+    ../../modules/base/users.nix
 
     ../../modules/roles/web.nix
 

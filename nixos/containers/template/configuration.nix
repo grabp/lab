@@ -3,7 +3,7 @@
 {
   imports = [
     # Platform
-    ../../modules/platform/proxmox.nix
+    ../../modules/platform/proxmox-lxc.nix
 
     # Base system
     ../../modules/base/defaults.nix
@@ -13,31 +13,31 @@
     ../../modules/base/ssh.nix
     ../../modules/base/users.nix
 
-    # Networking profile (choose ONE)
+    # Networking profile
     ../../modules/profiles/static-ip.nix
-    # ../../modules/profiles/dhcp.nix
 
-    # Host secrets
+    # Container secrets
     ./secrets.nix
   ];
 
-  ### ---- REQUIRED PER HOST ----
+  ### ---- REQUIRED PER CONTAINER ----
 
-  # Static IP example
+  # Static IP configuration
   my.networking.staticIPv4 = {
     enable = true;
     address = "CHANGEME";
     gateway = "CHANGEME";
   };
 
-  # Optional DNS override
+  # Optional DNS override (if not provided by DHCP/router)
   # my.networking.dns = [ "1.1.1.1" "9.9.9.9" ];
 
-  ### ---- OPTIONAL PER HOST ----
+  ### ---- OPTIONAL PER CONTAINER ----
 
-  # Add host-specific firewall ports
+  # Add container-specific firewall ports
   # my.firewall.extraTCPPorts = [ 8080 ];
 
   # Extra system packages
   # environment.systemPackages = with pkgs; [ htop ];
 }
+

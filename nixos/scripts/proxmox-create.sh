@@ -41,7 +41,9 @@ qm set $VMID \
   --name $HOST \
   --cores $CORES \
   --memory $MEMORY \
-  --net0 virtio,bridge=$BRIDGE
+  --net0 virtio,bridge=$BRIDGE \
+  --tags nixos,linux \
+  --ostype nixos
 
 qm start $VMID
 EOF
