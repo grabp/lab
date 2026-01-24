@@ -2,6 +2,13 @@
 
 Declarative NixOS configuration for managing Proxmox VMs and LXC containers.
 
+## Documentation
+
+- **[Architecture Design](./docs/ARCHITECTURE.md)** - Complete homelab architecture, network design, and implementation guide
+- **[Secrets Management](./docs/secrets.md)** - SOPS + age secrets management
+- **[Terraform Infrastructure](./terraform/README.md)** - Terraform Proxmox resource management
+- **[Hosts List](./HOSTS.md)** - Generated list of all VMs and containers with IP addresses
+
 ## Quick Start
 
 ### New VM

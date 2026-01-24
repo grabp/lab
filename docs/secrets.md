@@ -44,9 +44,15 @@ When you create a new VM with `just new web-1`, it automatically opens the secre
 ```bash
 sops secrets/common.yaml
 sops secrets/vms/web-1.yaml
+sops secrets/terraform.yaml  # Terraform infrastructure secrets (separate for security)
 ```
 
-Note: Both VMs and containers use the `secrets/vms/` directory for their secrets.
+**Secret File Organization:**
+- `secrets/common.yaml` - Shared secrets for VMs/containers
+- `secrets/vms/*.yaml` - Per-VM/container secrets
+- `secrets/terraform.yaml` - **Terraform-only secrets** (Proxmox credentials, not deployed to VMs)
+
+Note: Both VMs and containers use the `secrets/vms/` directory for their secrets. Terraform secrets are kept separate to avoid exposing infrastructure credentials to VMs/containers.
 
 It opens in your editor, and when you save, it encrypts automatically.
 
