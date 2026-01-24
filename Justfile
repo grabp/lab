@@ -515,6 +515,47 @@ clean:
     rm -f result result-*
     echo "Cleaned build artifacts"
 
+#==============================================================================
+# Terraform Commands
+#==============================================================================
+
+# Initialize Terraform
+terraform-init:
+    cd terraform && terraform init
+
+# Plan Terraform changes
+terraform-plan:
+    cd terraform && terraform plan
+
+# Apply Terraform changes
+terraform-apply:
+    cd terraform && terraform apply
+
+# Show Terraform state
+terraform-show:
+    cd terraform && terraform show
+
+# Destroy specific resource
+terraform-destroy NAME:
+    cd terraform && terraform destroy -target=module.{{NAME}}_instance
+
+# Format Terraform files
+terraform-fmt:
+    cd terraform && terraform fmt -recursive
+
+# Validate Terraform configuration
+terraform-validate:
+    cd terraform && terraform validate
+
+# Terraform aliases
+alias tf-init := terraform-init
+alias tf-plan := terraform-plan
+alias tf-apply := terraform-apply
+alias tf-show := terraform-show
+alias tf-destroy := terraform-destroy
+alias tf-fmt := terraform-fmt
+alias tf-validate := terraform-validate
+
 # Common command aliases
 alias l := list
 alias c := check

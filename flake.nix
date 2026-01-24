@@ -97,6 +97,7 @@
           sops
           age
           jq
+          terraform
         ];
       };
 

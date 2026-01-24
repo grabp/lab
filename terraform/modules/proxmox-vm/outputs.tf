@@ -1,0 +1,15 @@
+output "vm_id" {
+  description = "VM ID"
+  value       = proxmox_virtual_environment_vm.vm.vm_id
+}
+
+output "name" {
+  description = "VM name"
+  value       = proxmox_virtual_environment_vm.vm.name
+}
+
+output "ipv4_addresses" {
+  description = "IPv4 addresses"
+  value       = proxmox_virtual_environment_vm.vm.ipv4_addresses
+}
+
