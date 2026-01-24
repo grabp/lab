@@ -3,10 +3,15 @@
 {
   imports = [
     # Platform
-    ../../modules/platform/proxmox.nix
+    ../../modules/platform/proxmox-vm.nix
 
     # Base system
-    ../../modules/base
+    ../../modules/base/defaults.nix
+    ../../modules/base/firewall.nix
+    ../../modules/base/nix.nix
+    ../../modules/base/sops-common.nix
+    ../../modules/base/ssh.nix
+    ../../modules/base/users.nix
 
     # Networking profile (choose ONE)
     ../../modules/profiles/static-ip.nix

@@ -44,6 +44,13 @@ deploy:
 	@test -n "$(HOST)" || (echo "HOST required"; exit 1)
 	nix run github:serokell/deploy-rs -- .#$(HOST)
 
+.PHONY: deploy-lxc
+deploy-lxc:
+	@test -n "$(HOST)" || (echo "HOST required"; exit 1)
+	nix build .#nixosConfigurations.$(HOST).config.system.build.toplevel
+	nix copy --to ssh://ops@$(IP) ./result
+	ssh ops@$(IP) sudo ./result/bin/switch-to-configuration switch
+
 .PHONY: deploy-all
 deploy-all:
 	@echo "Deploying to all hosts..."
@@ -62,3 +69,9 @@ proxmox-create:
 	@test -n "$(HOST)" || (echo "HOST required"; exit 1)
 	nix build .#$(HOST)
 	./scripts/proxmox-create.sh $(HOST)
+
+.PHONY: proxmox-lxc-create
+proxmox-lxc-create:
+	@test -n "$(HOST)" || (echo "HOST required"; exit 1)
+	nix build .#$(HOST)
+	bash scripts/proxmox-lxc-create.sh $(HOST)
