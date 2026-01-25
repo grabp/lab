@@ -71,7 +71,7 @@ locals {
     }
     # TODO: Uncomment services as they are deployed
     # "caddy-1" = {
-    #   ip_address  = "10.0.0.10"
+    #   ip_address  = "10.0.0.80"
     #   category    = "infrastructure"
     #   pool        = "infrastructure"
     #   type        = "container"
