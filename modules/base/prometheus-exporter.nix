@@ -1,18 +1,21 @@
 {
   services.prometheus.exporters.node = {
     enable = true;
+
     port = 9100;
+    listenAddress = "0.0.0.0";
 
     enabledCollectors = [
       "systemd"
-      "logind"
+      "filesystem"
+      "cpu"
+      "meminfo"
+      "loadavg"
     ];
 
     disabledCollectors = [
       "textfile"
     ];
-
-    listenAddress = "0.0.0.0";
 
     openFirewall = true;
   };
