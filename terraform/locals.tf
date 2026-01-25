@@ -98,19 +98,19 @@ locals {
     # }
 
     # # Monitoring Stack
-    # "prometheus-1" = {
-    #   ip_address  = "10.0.0.20"
-    #   category    = "monitoring"
-    #   pool        = "monitoring"
-    #   type        = "container"
-    #   cores       = 2
-    #   memory      = 1536
-    #   disk_size   = "20G"
-    #   storage     = var.default_storage
-    #   description = "Prometheus metrics collection"
-    #   subdomain   = "prometheus.grab-lab.gg"
-    #   tags        = ["monitoring", "metrics"]
-    # }
+    "prometheus-1" = {
+      ip_address  = "10.0.0.20"
+      category    = "monitoring"
+      pool        = "monitoring"
+      type        = "container"
+      cores       = 2
+      memory      = 1536
+      disk_size   = "50G"
+      storage     = var.default_storage
+      description = "Prometheus metrics collection"
+      subdomain   = "prometheus.grab-lab.gg"
+      tags        = ["monitoring", "metrics"]
+    }
     # "grafana-1" = {
     #   ip_address  = "10.0.0.21"
     #   category    = "monitoring"
@@ -205,25 +205,25 @@ locals {
   resource_pools = {
     "infrastructure" = {
       comment       = "Infrastructure services: DNS, reverse proxy, VPN"
-      memory_limit  = 1280 # 1.25GB in MB
-      cpu_limit     = 3    # Total cores
-      disk_limit_gb = 10   # Total disk in GB
+      memory_limit  = 1280
+      cpu_limit     = 3
+      disk_limit_gb = 15
     }
     "monitoring" = {
       comment       = "Monitoring stack: Prometheus, Grafana, Loki"
-      memory_limit  = 4096 # 4GB
+      memory_limit  = 4096
       cpu_limit     = 6
-      disk_limit_gb = 50
+      disk_limit_gb = 100
     }
     "services" = {
       comment       = "Application services: Portainer, Home Assistant, UptimeKuma"
-      memory_limit  = 3072 # 3GB
+      memory_limit  = 3072
       cpu_limit     = 4
-      disk_limit_gb = 40
+      disk_limit_gb = 80
     }
     "docker" = {
       comment       = "Docker host VM"
-      memory_limit  = 2048 # 2GB
+      memory_limit  = 2048
       cpu_limit     = 2
       disk_limit_gb = 32
     }

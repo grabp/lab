@@ -104,3 +104,41 @@ module "caddy_instance" {
     keyctl  = false
   }
 }
+
+# ============================================================================
+# Prometheus-1 Container
+# ============================================================================
+
+# Upload caddy-1 NixOS image to Proxmox
+module "prometheus_image" {
+  source        = "./modules/image-upload"
+  node_name     = local.node_name
+  instance_name = "prometheus-1"
+  image_type    = "lxc"
+  storage       = "skrzynia-main" # Storage that supports vztmpl
+}
+
+# Create prometheus-1 LXC container
+module "prometheus_instance" {
+  source        = "./modules/proxmox-lxc"
+  name          = "prometheus-1"
+  node_name     = local.node_name
+  description   = local.services["prometheus-1"].description
+  cores         = local.services["prometheus-1"].cores
+  memory        = local.services["prometheus-1"].memory
+  disk_size     = local.services["prometheus-1"].disk_size
+  storage       = local.services["prometheus-1"].storage
+  bridge        = local.network.bridge
+  pool_id       = local.services["prometheus-1"].pool
+  image_file_id = module.prometheus_image.file_id
+  ip_address    = local.services["prometheus-1"].ip_address
+  prefix_length = local.network.prefix_length
+  gateway       = local.network.gateway
+  tags          = local.services["prometheus-1"].tags
+
+  # Only nesting is allowed for non-root API tokens
+  features = {
+    nesting = true
+    keyctl  = false
+  }
+}

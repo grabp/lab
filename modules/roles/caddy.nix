@@ -34,6 +34,16 @@
           reverse_proxy 10.0.0.53:80
         '';
       };
+      "prometheus.grab-lab.gg" = {
+        extraConfig = ''
+          tls {
+            dns cloudflare {env.CF_API_TOKEN}
+            resolvers 1.1.1.1 1.0.0.1
+          }
+
+          reverse_proxy 10.0.0.20:9090
+        '';
+      };
 
       "*.grab-lab.gg" = {
         extraConfig = ''
