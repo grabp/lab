@@ -69,20 +69,20 @@ locals {
       subdomain   = "pihole.grab-lab.gg"
       tags        = ["dns", "adblock"]
     }
-    # TODO: Uncomment services as they are deployed
-    # "caddy-1" = {
-    #   ip_address  = "10.0.0.80"
-    #   category    = "infrastructure"
-    #   pool        = "infrastructure"
-    #   type        = "container"
-    #   cores       = 1
-    #   memory      = 512
-    #   disk_size   = "4G"
-    #   storage     = var.default_storage
-    #   description = "Caddy reverse proxy"
-    #   subdomain   = "caddy.grab-lab.gg"
-    #   tags        = ["reverse-proxy", "ssl"]
-    # }
+    # Caddy reverse proxy
+    "caddy-1" = {
+      ip_address  = "10.0.0.80"
+      category    = "infrastructure"
+      pool        = "infrastructure"
+      type        = "container"
+      cores       = 1
+      memory      = 512
+      disk_size   = "4G"
+      storage     = var.default_storage
+      description = "Caddy reverse proxy"
+      subdomain   = "caddy.grab-lab.gg"
+      tags        = ["reverse-proxy", "ssl"]
+    }
     # "netbird-1" = {
     #   ip_address  = "10.0.0.11"
     #   category    = "infrastructure"

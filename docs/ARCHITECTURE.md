@@ -165,7 +165,7 @@ sequenceDiagram
 
 - **DNS Provider**: Cloudflare (nameservers pointed to Cloudflare)
 - **Caddy Plugin**: `github.com/caddy-dns/cloudflare`
-- **Credentials**: Stored in SOPS secrets (`secrets/vms/caddy-1.yaml`)
+- **Credentials**: Stored in SOPS secrets (`secrets/vms/caddy-1.env`)
 - **API Token**: Cloudflare API token with DNS edit permissions only
 
 ## Split DNS Architecture
@@ -491,7 +491,7 @@ just deploy-container caddy-1
 **Tasks:**
 1. Point domain nameservers to Cloudflare
 2. Create Cloudflare API token (DNS edit only, scoped to zone)
-3. Add credentials to SOPS secrets (`secrets/vms/caddy-1.yaml`)
+3. Add credentials to SOPS secrets (`secrets/vms/caddy-1.env`)
 4. Configure Caddy with Cloudflare DNS plugin
 5. Generate wildcard certificate for `*.grab-lab.gg`
 6. Verify HTTPS access with valid certificates
@@ -500,7 +500,7 @@ just deploy-container caddy-1
 - Login to Cloudflare dashboard
 - Navigate to My Profile → API Tokens
 - Create token with "Edit zone DNS" permission for `grab-lab.gg` zone only
-- Store in SOPS: `sops secrets/vms/caddy-1.yaml`
+- Store in SOPS: `sops secrets/vms/caddy-1.env`
 
 **Caddy Configuration:**
 - Build Caddy with Cloudflare plugin: `xcaddy build --with github.com/caddy-dns/cloudflare`
