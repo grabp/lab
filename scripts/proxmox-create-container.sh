@@ -38,7 +38,15 @@ else
 fi
 
 # ---- Locate built image
-IMAGE_LOCAL=$(ls result/tarball/*.tar.xz | head -n1)
+IMAGE_LOCAL=$(ls results/${CONTAINER}/result/tarball/*.tar.xz 2>/dev/null | head -n1)
+if [ -z "$IMAGE_LOCAL" ]; then
+  # Fallback to result symlink for backwards compatibility
+  IMAGE_LOCAL=$(ls result/tarball/*.tar.xz 2>/dev/null | head -n1)
+fi
+if [ -z "$IMAGE_LOCAL" ]; then
+  echo "Error: No image found. Run 'just image-container ${CONTAINER}' first."
+  exit 1
+fi
 IMAGE_NAME=$(basename "$IMAGE_LOCAL")
 IMAGE_REMOTE="/var/lib/vz/template/cache/$IMAGE_NAME"
 

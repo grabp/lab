@@ -79,7 +79,8 @@ new HOST:
 image HOST:
     #!/usr/bin/env bash
     test -n "{{HOST}}" || { echo "HOST required"; exit 1; }
-    nix build .#{{HOST}}
+    mkdir -p results/{{HOST}}
+    nix build .#{{HOST}} --out-link results/{{HOST}}/result
 
 # Bootstrap SOPS keys (requires IP)
 bootstrap HOST IP:
@@ -100,7 +101,7 @@ deploy HOST:
 proxmox-create HOST:
     #!/usr/bin/env bash
     test -n "{{HOST}}" || { echo "HOST required"; exit 1; }
-    nix build .#{{HOST}}
+    just image {{HOST}}
     ./scripts/proxmox-create.sh {{HOST}}
 
 # SSH into VM (auto-detects IP)
@@ -212,7 +213,8 @@ new-container CONTAINER:
 image-container CONTAINER:
     #!/usr/bin/env bash
     test -n "{{CONTAINER}}" || { echo "CONTAINER required"; exit 1; }
-    nix build .#{{CONTAINER}}
+    mkdir -p results/{{CONTAINER}}
+    nix build .#{{CONTAINER}} --out-link results/{{CONTAINER}}/result
 
 # Bootstrap SOPS keys for container (requires IP)
 bootstrap-container CONTAINER IP:
@@ -233,7 +235,7 @@ deploy-container CONTAINER:
 proxmox-create-container CONTAINER:
     #!/usr/bin/env bash
     test -n "{{CONTAINER}}" || { echo "CONTAINER required"; exit 1; }
-    nix build .#{{CONTAINER}}
+    just image-container {{CONTAINER}}
     ./scripts/proxmox-create-container.sh {{CONTAINER}}
 
 # SSH into container (auto-detects IP)
@@ -512,7 +514,7 @@ docs:
 
 # Remove build artifacts
 clean:
-    rm -f result result-*
+    rm -rf results result result-*
     echo "Cleaned build artifacts"
 
 #==============================================================================

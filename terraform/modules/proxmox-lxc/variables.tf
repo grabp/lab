@@ -1,3 +1,8 @@
+variable "name" {
+  description = "Container name (used as hostname)"
+  type        = string
+}
+
 variable "node_name" {
   description = "Proxmox node name"
   type        = string
@@ -72,6 +77,11 @@ variable "gateway" {
   description = "Gateway IP address (required if ip_address is set)"
   type        = string
   default     = null
+
+  validation {
+    condition     = var.gateway != null || var.ip_address == null
+    error_message = "Gateway is required when ip_address is set."
+  }
 }
 
 variable "unprivileged" {
@@ -108,5 +118,11 @@ variable "tags" {
   description = "Additional tags"
   type        = list(string)
   default     = []
+}
+
+variable "pool_id" {
+  description = "Resource pool ID to assign container to (optional)"
+  type        = string
+  default     = null
 }
 
