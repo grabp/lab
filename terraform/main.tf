@@ -66,3 +66,41 @@ module "pihole_instance" {
     keyctl  = false
   }
 }
+
+# ============================================================================
+# Caddy-1 Container
+# ============================================================================
+
+# Upload caddy-1 NixOS image to Proxmox
+module "caddy_image" {
+  source        = "./modules/image-upload"
+  node_name     = local.node_name
+  instance_name = "caddy-1"
+  image_type    = "lxc"
+  storage       = "skrzynia-main" # Storage that supports vztmpl
+}
+
+# Create caddy-1 LXC container
+module "caddy_instance" {
+  source        = "./modules/proxmox-lxc"
+  name          = "caddy-1"
+  node_name     = local.node_name
+  description   = local.services["caddy-1"].description
+  cores         = local.services["caddy-1"].cores
+  memory        = local.services["caddy-1"].memory
+  disk_size     = local.services["caddy-1"].disk_size
+  storage       = local.services["caddy-1"].storage
+  bridge        = local.network.bridge
+  pool_id       = local.services["caddy-1"].pool
+  image_file_id = module.caddy_image.file_id
+  ip_address    = local.services["caddy-1"].ip_address
+  prefix_length = local.network.prefix_length
+  gateway       = local.network.gateway
+  tags          = local.services["caddy-1"].tags
+
+  # Only nesting is allowed for non-root API tokens
+  features = {
+    nesting = true
+    keyctl  = false
+  }
+}
