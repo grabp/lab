@@ -12,4 +12,3 @@ output "ipv4_addresses" {
   description = "IPv4 addresses"
   value       = proxmox_virtual_environment_vm.vm.ipv4_addresses
 }
-

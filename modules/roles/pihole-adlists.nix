@@ -13,21 +13,72 @@
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      # Allow retries on first boot when database may not be ready
+      Restart = "on-failure";
+      RestartSec = "10s";
+      RestartMaxDelaySec = "60s";
       Environment = "PATH=/run/current-system/sw/bin:/usr/local/bin:/usr/bin:/bin";
       ExecStart = "${pkgs.writeShellScriptBin "pihole-adlists-setup" ''
-        # Pi-hole gravity database location (confirmed from earlier debugging)
+        set -euo pipefail
+        
+        # Pi-hole gravity database location
         GRAVITY_DB="/var/lib/pihole/gravity.db"
         
-        # Wait for pihole-ftl to initialize database and create gravity/antigravity tables
-        # The errors show these tables need to exist before we can add adlists
-        echo "Waiting for Pi-hole database to initialize..."
+        # Wait for pihole-ftl to be running
+        echo "Waiting for Pi-hole FTL to start..."
         for i in {1..30}; do
-          if ${pkgs.sqlite}/bin/sqlite3 "$GRAVITY_DB" "SELECT name FROM sqlite_master WHERE type='table' AND name='gravity';" 2>/dev/null | grep -q gravity; then
-            echo "Database tables ready!"
+          if systemctl is-active --quiet pihole-ftl.service; then
+            echo "Pi-hole FTL is running!"
+            break
+          fi
+          echo "Waiting for pihole-ftl service... ($i/30)"
+          sleep 2
+        done
+        
+        if ! systemctl is-active --quiet pihole-ftl.service; then
+          echo "ERROR: pihole-ftl not running. Cannot proceed."
+          exit 1
+        fi
+        
+        # Find pihole command
+        PIHOLE_CMD=""
+        if command -v pihole &> /dev/null; then
+          PIHOLE_CMD="pihole"
+        elif [ -x /usr/local/bin/pihole ]; then
+          PIHOLE_CMD="/usr/local/bin/pihole"
+        fi
+        
+        if [ -z "$PIHOLE_CMD" ]; then
+          echo "ERROR: pihole command not found"
+          exit 1
+        fi
+        
+        # On first boot, gravity.db doesn't exist yet - we need to run pihole -g to create it
+        if [ ! -f "$GRAVITY_DB" ]; then
+          echo "First boot detected - initializing gravity database..."
+          # Run gravity update to create the database
+          # This downloads blocklists and creates gravity.db
+          sudo -u pihole $PIHOLE_CMD -g || {
+            echo "Initial gravity update failed (this may be normal on first boot)"
+            echo "Will retry on next boot or manual 'pihole -g'"
+            exit 0  # Don't fail - allow system to come up
+          }
+        fi
+        
+        # Wait for database to be ready after gravity update
+        echo "Waiting for gravity database..."
+        for i in {1..30}; do
+          if [ -f "$GRAVITY_DB" ] && ${pkgs.sqlite}/bin/sqlite3 "$GRAVITY_DB" "SELECT COUNT(*) FROM adlist LIMIT 1;" 2>/dev/null; then
+            echo "Gravity database ready!"
             break
           fi
           sleep 2
         done
+        
+        if [ ! -f "$GRAVITY_DB" ]; then
+          echo "Gravity database not created. Adlists will be configured on next boot."
+          exit 0
+        fi
         
         # Function to add adlist if it doesn't exist
         add_adlist() {
@@ -104,15 +155,15 @@
         #   "Disconnect.me - Simple Ad" \
         #   1
         
-        # Update gravity database to apply changes
-        echo "Updating gravity database..."
-        if command -v pihole &> /dev/null; then
-          pihole -g
-        elif [ -x /usr/local/bin/pihole ]; then
-          /usr/local/bin/pihole -g
+        # Update gravity to download the new adlists
+        echo "Updating gravity to download adlists..."
+        if sudo -u pihole $PIHOLE_CMD -g 2>&1; then
+          echo "Gravity update complete!"
         else
-          echo "Warning: pihole command not found. Lists added but gravity update needed."
+          echo "Warning: Gravity update had issues. Adlists are saved and will be downloaded on next update."
         fi
+        
+        echo "Adlists setup complete!"
       ''}/bin/pihole-adlists-setup";
     };
   };

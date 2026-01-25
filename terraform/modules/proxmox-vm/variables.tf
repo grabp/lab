@@ -8,6 +8,12 @@ variable "node_name" {
   type        = string
 }
 
+variable "vm_id" {
+  description = "VM ID (use null for auto-assign)"
+  type        = number
+  default     = null
+}
+
 variable "description" {
   description = "VM description"
   type        = string
@@ -39,9 +45,9 @@ variable "memory" {
 }
 
 variable "disk_size" {
-  description = "Disk size (e.g., '32G')"
-  type        = string
-  default     = "32G"
+  description = "Disk size in GB (number)"
+  type        = number
+  default     = 32
 }
 
 variable "storage" {
@@ -83,5 +89,11 @@ variable "tags" {
   description = "Additional tags"
   type        = list(string)
   default     = []
+}
+
+variable "pool_id" {
+  description = "Resource pool ID to assign VM to (optional)"
+  type        = string
+  default     = null
 }
 

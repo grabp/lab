@@ -3,13 +3,7 @@ output "vm_id" {
   value       = proxmox_virtual_environment_container.lxc.vm_id
 }
 
-output "name" {
-  description = "Container name"
-  value       = proxmox_virtual_environment_container.lxc.name
+output "id" {
+  description = "Container resource ID"
+  value       = proxmox_virtual_environment_container.lxc.id
 }
-
-output "ipv4_addresses" {
-  description = "IPv4 addresses"
-  value       = proxmox_virtual_environment_container.lxc.ipv4_addresses
-}
-

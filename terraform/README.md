@@ -9,6 +9,26 @@ This Terraform setup works alongside your NixOS flake:
 2. **Terraform** manages Proxmox resources (declarative)
 3. **deploy-rs** deploys NixOS configurations (declarative)
 
+## Directory Structure
+
+```
+terraform/
+├── resources/           # Resource pool module
+│   └── pools.tf         # Resource pool definitions
+├── modules/             # Reusable modules
+│   ├── image-upload/    # Image upload module
+│   ├── proxmox-lxc/     # LXC container module
+│   ├── proxmox-vm/      # VM module
+│   └── service-definition/ # Service config helper
+├── locals.tf            # Service registry, pools, network config
+├── data-sources.tf      # Proxmox data source queries
+├── provider.tf          # Provider configuration
+├── variables.tf         # Variable definitions
+├── outputs.tf           # Output definitions
+├── main.tf              # Module calls
+└── versions.tf          # Version constraints
+```
+
 ## Workflow
 
 ```mermaid
@@ -22,8 +42,9 @@ graph LR
 
 1. **Build NixOS image:**
    ```bash
-   nix build .#caddy-1
+   just image-container caddy-1
    ```
+   Images are now organized under `results/<name>/result/` for better organization.
 
 2. **Plan Terraform changes:**
    ```bash
@@ -47,8 +68,11 @@ graph LR
 ### Prerequisites
 
 1. **Proxmox API access:**
-   - Create API token in Proxmox UI
-   - Or use root password (less secure)
+   - **Recommended:** Create API token in Proxmox UI (most secure)
+     - Add to SOPS secrets: `proxmox_api_token: "user@realm!token-id=secret"` in `secrets/terraform.yaml`
+     - Or set `proxmox_api_token` variable in Terraform (via `TF_VAR_proxmox_api_token` environment variable)
+     - Or set environment variable: `export PROXMOX_VE_API_TOKEN="user@realm!token-id=secret"`
+   - **Alternative:** Use username/password via SOPS (see below)
 
 2. **SOPS secrets:**
    Edit `secrets/terraform.yaml` (separate from common.yaml for security):
@@ -56,12 +80,18 @@ graph LR
    sops secrets/terraform.yaml
    ```
    
-   Update the `proxmox_password` value:
+   Add your Proxmox credentials (API token preferred, or username/password):
    ```yaml
-   proxmox_password: "your-password-or-token"
+   # Option 1: API token (recommended)
+   proxmox_api_token: "user@realm!token-id=secret"
+   
+   # Option 2: Username/password (fallback if API token not provided)
+   proxmox_password: "your-password"
    ```
    
-   **Security Note:** Terraform secrets are kept separate from `secrets/common.yaml` to avoid exposing Proxmox credentials to VMs/containers.
+   **Security Note:** Terraform secrets are kept separate from `secrets/common.yaml` to avoid exposing Proxmox credentials to VMs/containers. API tokens are preferred over passwords.
+   
+   **Priority order:** 1) Terraform variable, 2) SOPS `proxmox_api_token`, 3) Environment variable `PROXMOX_VE_API_TOKEN`, 4) Username/password from SOPS
 
 3. **SSH access:**
    - Ensure SSH key is in `~/.ssh/id_rsa` or configure path
@@ -87,54 +117,71 @@ terraform init
 
 2. **Build image:**
    ```bash
-   nix build .#caddy-1
+   just image-container caddy-1
+   ```
+   This creates the image in `results/caddy-1/result/tarball/*.tar.xz`
+
+3. **Add service to registry** (`terraform/locals.tf`):
+   
+   Services are defined in `local.services` - add or verify your service entry:
+   ```hcl
+   "caddy-1" = {
+     ip_address  = "10.0.0.10"
+     category    = "infrastructure"
+     pool        = "infrastructure"
+     type        = "container"
+     cores       = 1
+     memory      = 512
+     disk_size   = "4G"
+     storage     = var.default_storage
+     description = "Caddy reverse proxy"
+     subdomain   = "caddy.grab-lab.gg"
+     tags        = ["reverse-proxy", "ssl"]
+   }
    ```
 
-3. **Create Terraform config** (`terraform/instances/caddy-1.tf`):
+4. **Create instance in `main.tf`**:
    ```hcl
    module "caddy_image" {
-     source = "../modules/image-upload"
-     
-     node_name        = "10.0.0.50"
-     local_image_path = "../result/tarball/caddy-1.tar.xz"
-     image_type       = "lxc"
+     source        = "./modules/image-upload"
+     node_name     = local.node_name
+     instance_name = "caddy-1"
+     image_type    = "lxc"
+     storage       = "local"
    }
    
    module "caddy_instance" {
-     source = "../modules/proxmox-lxc"
-     
-     name         = "caddy-1"
-     node_name    = "10.0.0.50"
-     description  = "Caddy reverse proxy"
-     cores        = 1
-     memory       = 512
-     disk_size    = "4G"
-     storage      = "local-lvm"
-     bridge       = "vmbr0"
+     source        = "./modules/proxmox-lxc"
+     name          = "caddy-1"
+     node_name     = local.node_name
+     description   = local.services["caddy-1"].description
+     cores         = local.services["caddy-1"].cores
+     memory        = local.services["caddy-1"].memory
+     disk_size     = local.services["caddy-1"].disk_size
+     storage       = local.services["caddy-1"].storage
+     bridge        = local.network.bridge
+     pool_id       = local.services["caddy-1"].pool
      image_file_id = module.caddy_image.file_id
-     
-     ip_address    = "10.0.0.10"
-     prefix_length = 24
-     gateway       = "10.0.0.1"
-     
-     unprivileged = true
-     start_on_create = true
+     ip_address    = local.services["caddy-1"].ip_address
+     prefix_length = local.network.prefix_length
+     gateway       = local.network.gateway
+     tags          = local.services["caddy-1"].tags
    }
    ```
 
-4. **Apply Terraform:**
+5. **Apply Terraform:**
    ```bash
    cd terraform
    terraform plan
    terraform apply
    ```
 
-5. **Bootstrap secrets:**
+6. **Bootstrap secrets:**
    ```bash
    just bootstrap-container caddy-1 10.0.0.10
    ```
 
-6. **Deploy NixOS config:**
+7. **Deploy NixOS config:**
    ```bash
    just deploy-container caddy-1
    ```
@@ -186,12 +233,53 @@ Creates a Proxmox LXC container from a NixOS-generated template.
 
 ### `modules/image-upload`
 
-Uploads NixOS images to Proxmox.
+Uploads NixOS images to Proxmox using the provider's file upload resource.
 
 **Variables:**
 - `node_name` - Proxmox node
-- `local_image_path` - Path to image file
+- `local_image_path` - Path to image file (or use `instance_name` for auto-detection)
+- `instance_name` - Instance name for auto-detecting image path
 - `image_type` - "vm" or "lxc"
+- `storage` - Storage pool/datastore ID (default: "local")
+
+## Data Sources
+
+### Querying Existing Resources
+
+The configuration includes several data sources for querying existing Proxmox resources:
+
+#### Containers
+```hcl
+data "proxmox_virtual_environment_containers" "all" {
+  node_name = "pve"  # Your Proxmox node name
+}
+```
+
+#### Virtual Machines
+```hcl
+data "proxmox_virtual_environment_vms" "all" {
+  node_name = "pve"  # Your Proxmox node name
+}
+```
+
+#### Storage/Datastores
+```hcl
+data "proxmox_virtual_environment_datastores" "all" {
+  node_name = "pve"  # Your Proxmox node name
+}
+```
+
+**Use Cases:**
+- Check if a container/VM exists before creating it
+- Avoid duplicate resource creation
+- Reference existing resources in other resources
+- List all resources for inventory/audit purposes
+- Query available storage pools
+
+**Outputs Available:**
+- `existing_containers` / `existing_container_ids` - Container information
+- `existing_vms` / `existing_vm_ids` - VM information
+- `available_datastores` - Available storage pools
 
 ## State Management
 
@@ -235,9 +323,11 @@ terraform-destroy NAME:
 
 ### Provider Authentication Fails
 
-- Verify Proxmox credentials in SOPS
-- Check API token permissions
+- **If using API token:** Verify `PROXMOX_VE_API_TOKEN` environment variable or `proxmox_api_token` variable
+- **If using SOPS:** Verify Proxmox credentials in `secrets/terraform.yaml`
+- Check API token permissions (needs VM/Container management permissions)
 - Try `insecure = true` for self-signed certs
+- Ensure SSH access works if using VM restore (for vma.zst backups)
 
 ### State Lock Issues
 

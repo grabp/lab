@@ -84,7 +84,10 @@
         in
         if builtins.pathExists path then import path else { };
 
-      pkgs = import nixpkgs { inherit system; };
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true; # Required for terraform (BSL license)
+      };
 
     in
     {

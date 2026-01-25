@@ -9,6 +9,7 @@ syncthing-secrets.nix
 
 # NixOS build links
 result
+results/
 
 # Ignore swap files
 *.swp
