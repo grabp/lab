@@ -17,7 +17,7 @@
     ../../modules/profiles/static-ip.nix
 
     # Roles
-    ../../modules/roles/prometheus.nix
+    ../../modules/roles/grafana.nix
 
     # Container secrets
     ./secrets.nix
@@ -28,7 +28,7 @@
   # Static IP configuration
   my.networking.staticIPv4 = {
     enable = true;
-    address = "10.0.0.120";
+    address = "10.0.0.121";
     gateway = "10.0.0.1";
   };
 
@@ -38,7 +38,7 @@
   ### ---- OPTIONAL PER CONTAINER ----
 
   # Add container-specific firewall ports
-  # my.firewall.extraTCPPorts = [ ];
+  # my.firewall.extraTCPPorts = [ 8080 ];
 
   # Extra system packages
   # environment.systemPackages = with pkgs; [ htop ];

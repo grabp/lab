@@ -1,10 +1,10 @@
 {
   # Proxmox node IP/hostname
-  node = "10.0.0.80";
+  node = "10.0.0.121";
 
-  # Resource limits - Caddy reverse proxy
-  cores = 1;
-  memory = 512;
+  # Resource limits - optimized for small services
+  cores = 1; # Most small services don't need more than 1 core
+  memory = 512; # 512MB is usually sufficient, can increase if needed
 
   # Network bridge (network IP/gateway configured in configuration.nix)
   bridge = "vmbr0";
@@ -15,6 +15,6 @@
     "nesting=1"
     "keyctl=1"
   ];
-  rootfsSize = "4G";
+  rootfsSize = "3G";
   storage = "local-lvm";
 }

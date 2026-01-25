@@ -12,6 +12,28 @@ locals {
   # For vma.zst files (VM backups), use content_type "backup"
   content_type = var.image_type == "vm" ? "backup" : "vztmpl"
   datastore_id = var.storage
+
+  # Original filename (e.g. nixos-image-....tar.xz)
+  original_file_name = local.final_image_path != null ? basename(local.final_image_path) : null
+
+  # Strip the original basename without extension(s)
+  # This removes everything up to the first dot
+  original_suffix = local.original_file_name != null ? substr(local.original_file_name, length(split(".", local.original_file_name)[0]) + 1,length(local.original_file_name)): null
+
+  # Compute a short content hash for uniqueness
+  image_hash = local.final_image_path != null ? substr(filesha256(local.final_image_path), 0, 12) : null
+
+  # Build a unique, stable file name
+  # Examples:
+  # pihole-1-lxc-<hash>.tar.xz
+  # prometheus-vm-<hash>.vma.zst
+  new_file_name = local.final_image_path != null ? format(
+    "%s-%s-%s.%s",
+    var.instance_name,
+    var.image_type,
+    local.image_hash,
+    local.original_suffix
+  ) : null
 }
 
 # Find the actual image file (handles wildcards in path)
@@ -65,6 +87,7 @@ resource "proxmox_virtual_environment_file" "image" {
   content_type = local.content_type
   source_file {
     path = local.final_image_path
+    file_name = local.new_file_name
   }
 }
 

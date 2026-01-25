@@ -109,7 +109,7 @@ module "caddy_instance" {
 # Prometheus-1 Container
 # ============================================================================
 
-# Upload caddy-1 NixOS image to Proxmox
+# Upload prometheus-1 NixOS image to Proxmox
 module "prometheus_image" {
   source        = "./modules/image-upload"
   node_name     = local.node_name
@@ -135,6 +135,44 @@ module "prometheus_instance" {
   prefix_length = local.network.prefix_length
   gateway       = local.network.gateway
   tags          = local.services["prometheus-1"].tags
+
+  # Only nesting is allowed for non-root API tokens
+  features = {
+    nesting = true
+    keyctl  = false
+  }
+}
+
+# ============================================================================
+# grafana-1 Container
+# ============================================================================
+
+# Upload grafana-1 NixOS image to Proxmox
+module "grafana_image" {
+  source        = "./modules/image-upload"
+  node_name     = local.node_name
+  instance_name = "grafana-1"
+  image_type    = "lxc"
+  storage       = "skrzynia-main" # Storage that supports vztmpl
+}
+
+# Create grafana-1 LXC container
+module "grafana_instance" {
+  source        = "./modules/proxmox-lxc"
+  name          = "grafana-1"
+  node_name     = local.node_name
+  description   = local.services["grafana-1"].description
+  cores         = local.services["grafana-1"].cores
+  memory        = local.services["grafana-1"].memory
+  disk_size     = local.services["grafana-1"].disk_size
+  storage       = local.services["grafana-1"].storage
+  bridge        = local.network.bridge
+  pool_id       = local.services["grafana-1"].pool
+  image_file_id = module.grafana_image.file_id
+  ip_address    = local.services["grafana-1"].ip_address
+  prefix_length = local.network.prefix_length
+  gateway       = local.network.gateway
+  tags          = local.services["grafana-1"].tags
 
   # Only nesting is allowed for non-root API tokens
   features = {

@@ -40,8 +40,8 @@ graph TB
             end
             
             subgraph "Monitoring Stack"
-                Prometheus["Prometheus<br/>10.0.0.20<br/>prometheus.grab-lab.gg"]
-                Grafana["Grafana<br/>10.0.0.21<br/>grafana.grab-lab.gg"]
+                Prometheus["Prometheus<br/>10.0.0.120<br/>prometheus.grab-lab.gg"]
+                Grafana["Grafana<br/>10.0.0.121<br/>grafana.grab-lab.gg"]
                 Loki["Loki<br/>10.0.0.22<br/>loki.grab-lab.gg"]
             end
             
@@ -115,7 +115,7 @@ sequenceDiagram
     PiHole->>Client: Response: 10.0.0.80
     Client->>Caddy: HTTPS Request<br/>grafana.grab-lab.gg:443
     Caddy->>Caddy: Match subdomain<br/>Lookup route config
-    Caddy->>Service: Forward to<br/>10.0.0.21:3000
+    Caddy->>Service: Forward to<br/>10.0.0.121:3000
     Service->>Caddy: HTTP Response
     Caddy->>Caddy: SSL Termination<br/>Valid Certificate
     Caddy->>Client: HTTPS Response
@@ -218,8 +218,8 @@ dig ha.grab-lab.gg @8.8.8.8
 | Caddy | 10.0.0.80 | caddy.grab-lab.gg<br/>*.grab-lab.gg | Container | 512MB | Reverse Proxy + SSL |
 | NetBird | 10.0.0.11 | netbird.grab-lab.gg | Container | 256MB | Mesh VPN |
 | **Monitoring** |
-| Prometheus | 10.0.0.20 | prometheus.grab-lab.gg | Container | 1.5GB | Metrics collection |
-| Grafana | 10.0.0.21 | grafana.grab-lab.gg | Container | 1GB | Dashboards |
+| Prometheus | 10.0.0.120 | prometheus.grab-lab.gg | Container | 1.5GB | Metrics collection |
+| Grafana | 10.0.0.121 | grafana.grab-lab.gg | Container | 1GB | Dashboards |
 | Loki | 10.0.0.22 | loki.grab-lab.gg | Container | 1.5GB | Log aggregation |
 | **Services** |
 | Portainer | 10.0.0.30 | portainer.grab-lab.gg | Container | 512MB | Container management |
@@ -612,8 +612,8 @@ All services accessible via subdomains:
 | Service | Subdomain | Backend | Port |
 |---------|-----------|---------|------|
 | PiHole | pihole.grab-lab.gg | 10.0.0.53 | 80 |
-| Grafana | grafana.grab-lab.gg | 10.0.0.21 | 3000 |
-| Prometheus | prometheus.grab-lab.gg | 10.0.0.20 | 9090 |
+| Grafana | grafana.grab-lab.gg | 10.0.0.121 | 3000 |
+| Prometheus | prometheus.grab-lab.gg | 10.0.0.120 | 9090 |
 | Loki | loki.grab-lab.gg | 10.0.0.22 | 3100 |
 | Portainer | portainer.grab-lab.gg | 10.0.0.30 | 9000 |
 | Home Assistant | home.grab-lab.gg<br/>ha.grab-lab.gg | 10.0.0.31 | 8123 |
@@ -648,7 +648,7 @@ All services accessible via subdomains:
   # Grafana
   @grafana host grafana.grab-lab.gg
   handle @grafana {
-    reverse_proxy http://10.0.0.21:3000 {
+    reverse_proxy http://10.0.0.121:3000 {
       header_up Host {host}
       header_up X-Real-IP {remote}
     }
@@ -657,7 +657,7 @@ All services accessible via subdomains:
   # Prometheus
   @prometheus host prometheus.grab-lab.gg
   handle @prometheus {
-    reverse_proxy http://10.0.0.20:9090 {
+    reverse_proxy http://10.0.0.120:9090 {
       header_up Host {host}
     }
   }
