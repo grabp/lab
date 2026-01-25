@@ -1,6 +1,6 @@
 # Homelab Architecture Design Document
 
-**Last Updated:** 2025-01-24  
+**Last Updated:** 2026-01-25  
 **Hardware:** HP Elitedesk 705 G4 (Ryzen, 16GB RAM)  
 **Platform:** Proxmox VE with NixOS containers/VMs  
 **Network:** 10.0.0.0/24 (1Gbps LAN)
@@ -12,8 +12,9 @@ This document describes the architecture for a homelab setup managing multiple s
 ## Core Principles
 
 1. **No port-based access**: All services accessible via clean subdomains (e.g., `grafana.grab-lab.gg`)
-2. **Real SSL certificates**: DNS-01 ACME challenges via Porkbun DNS API (no self-signed certs)
-3. **Secure external access**: NetBird mesh VPN (no exposed ports except reverse proxy)
+2. **Real SSL certificates**: DNS-01 ACME challenges via Cloudflare DNS API (no self-signed certs)
+3. **Secure external access**: NetBird mesh VPN (no public exposure of services)
+4. **Split DNS**: Internal services resolve only via Pi-hole; public DNS returns NXDOMAIN
 4. **Infrastructure as Code**: All configurations managed via NixOS flake + Terraform
 5. **Secrets management**: SOPS + age for encrypted secrets
 6. **Declarative infrastructure**: Terraform manages Proxmox resources, NixOS manages OS configuration
@@ -23,8 +24,8 @@ This document describes the architecture for a homelab setup managing multiple s
 ```mermaid
 graph TB
     subgraph "Internet"
-        DDNS["DDNS Provider<br/>(Optional, for grab-lab.gg A record)"]
-        DNSRegistrar["Porkbun DNS<br/>DNS-01 ACME Challenge"]
+        DDNS["DDNS Provider<br/>vpn.grab-lab.gg only"]
+        DNSRegistrar["Cloudflare DNS<br/>DNS-01 ACME Challenge"]
     end
     
     subgraph "Home Network - 10.0.0.0/24"
@@ -34,7 +35,7 @@ graph TB
             
             subgraph "Infrastructure Layer"
                 PiHole["PiHole<br/>DNS Server<br/>10.0.0.53<br/>pihole.grab-lab.gg"]
-                Caddy["Caddy Reverse Proxy<br/>10.0.0.10<br/>*.grab-lab.gg<br/>SSL via Porkbun DNS-01"]
+                Caddy["Caddy Reverse Proxy<br/>10.0.0.80<br/>*.grab-lab.gg<br/>SSL via Cloudflare DNS-01"]
                 NetBird["NetBird Agent<br/>10.0.0.11<br/>netbird.grab-lab.gg"]
             end
             
@@ -66,7 +67,7 @@ graph TB
     Router -->|DNS Queries| PiHole
     Router -->|HTTPS 443| Caddy
     
-    PiHole -->|*.grab-lab.gg → 10.0.0.10| Caddy
+    PiHole -->|*.grab-lab.gg → 10.0.0.80| Caddy
     
     Caddy -->|Routes| Prometheus
     Caddy -->|Routes| Grafana
@@ -106,12 +107,12 @@ graph TB
 sequenceDiagram
     participant Client as Internal Client
     participant PiHole as PiHole DNS<br/>10.0.0.53
-    participant Caddy as Caddy Reverse Proxy<br/>10.0.0.10
+    participant Caddy as Caddy Reverse Proxy<br/>10.0.0.80
     participant Service as Service Container<br/>(e.g., Grafana)
     
     Client->>PiHole: DNS Query: grafana.grab-lab.gg
-    PiHole->>PiHole: Check dnsmasq rules<br/>*.grab-lab.gg → 10.0.0.10
-    PiHole->>Client: Response: 10.0.0.10
+    PiHole->>PiHole: Check dnsmasq rules<br/>*.grab-lab.gg → 10.0.0.80
+    PiHole->>Client: Response: 10.0.0.80
     Client->>Caddy: HTTPS Request<br/>grafana.grab-lab.gg:443
     Caddy->>Caddy: Match subdomain<br/>Lookup route config
     Caddy->>Service: Forward to<br/>10.0.0.21:3000
@@ -147,7 +148,7 @@ sequenceDiagram
 
 1. **Caddy requests certificate** from Let's Encrypt for `*.grab-lab.gg`
 2. **Let's Encrypt sends DNS challenge token**
-3. **Caddy uses Porkbun API** to create TXT record: `_acme-challenge.grab-lab.gg` with token
+3. **Caddy uses Cloudflare API** to create TXT record: `_acme-challenge.grab-lab.gg` with token
 4. **Let's Encrypt queries DNS** to verify domain ownership
 5. **Certificate issued automatically**
 6. **Caddy auto-renews** before expiration (~60 days)
@@ -158,13 +159,55 @@ sequenceDiagram
 - ✅ **Real certificates** - trusted by all browsers (not self-signed)
 - ✅ **Wildcard support** - `*.grab-lab.gg` covers all subdomains
 - ✅ **Automatic renewal** - no manual intervention
+- ✅ **No public service exposure** - only ACME challenge records are public
 
 ### Configuration
 
-- **DNS Provider**: Porkbun (nameservers set to Porkbun defaults)
-- **Caddy Plugin**: `github.com/caddy-dns/porkbun`
+- **DNS Provider**: Cloudflare (nameservers pointed to Cloudflare)
+- **Caddy Plugin**: `github.com/caddy-dns/cloudflare`
 - **Credentials**: Stored in SOPS secrets (`secrets/vms/caddy-1.yaml`)
-- **API Keys**: Porkbun API key + secret key
+- **API Token**: Cloudflare API token with DNS edit permissions only
+
+## Split DNS Architecture
+
+This infrastructure uses a **split-DNS model** to ensure services are only reachable when connected to the home network or VPN.
+
+### Public DNS (Cloudflare)
+
+Only the following records exist in public DNS:
+
+| Record | Type | Value | Purpose |
+|--------|------|-------|---------|
+| `vpn.grab-lab.gg` | A | `<home public IP>` | DDNS for NetBird VPN anchor |
+| `_acme-challenge.*` | TXT | `<managed by ACME>` | Automated certificate validation |
+
+**Important**: No wildcard A records (`*.grab-lab.gg`) exist in public DNS. Public resolvers return **NXDOMAIN** for service subdomains.
+
+### Private DNS (Pi-hole @ 10.0.0.53)
+
+Pi-hole is authoritative for internal service resolution:
+
+| Record | Value | Purpose |
+|--------|-------|---------|
+| `*.grab-lab.gg` | `10.0.0.80` | All services route to Caddy |
+
+### Security Benefits
+
+1. **Services are invisible** to the public internet
+2. **VPN required** - cannot access services without Pi-hole DNS
+3. **No DNS leakage** - public resolvers cannot reveal internal IPs
+4. **Same URLs everywhere** - identical experience locally and via VPN
+5. **Defense in depth** - VPN controls reachability, DNS controls visibility
+
+### Verification
+
+```bash
+# Internal (via Pi-hole) - should return 10.0.0.80
+dig ha.grab-lab.gg @10.0.0.53
+
+# Public (via Google DNS) - should return NXDOMAIN
+dig ha.grab-lab.gg @8.8.8.8
+```
 
 ## IP Address Allocation
 
@@ -172,7 +215,7 @@ sequenceDiagram
 |---------|-----------|--------------|------|-----|-------|
 | **Infrastructure** |
 | PiHole | 10.0.0.53 | pihole.grab-lab.gg | Container | 512MB | DNS + Adblock |
-| Caddy | 10.0.0.10 | caddy.grab-lab.gg<br/>*.grab-lab.gg | Container | 512MB | Reverse Proxy + SSL |
+| Caddy | 10.0.0.80 | caddy.grab-lab.gg<br/>*.grab-lab.gg | Container | 512MB | Reverse Proxy + SSL |
 | NetBird | 10.0.0.11 | netbird.grab-lab.gg | Container | 256MB | Mesh VPN |
 | **Monitoring** |
 | Prometheus | 10.0.0.20 | prometheus.grab-lab.gg | Container | 1.5GB | Metrics collection |
@@ -404,9 +447,9 @@ Terraform manages Proxmox infrastructure resources declaratively:
 
 **Tasks:**
 1. ✅ Deploy PiHole (already done)
-2. ⏳ Deploy Caddy reverse proxy container
-3. ⏳ Configure PiHole wildcard DNS (`*.grab-lab.gg → 10.0.0.10`)
-4. ⏳ Test local DNS resolution
+2. ✅ Configure PiHole wildcard DNS (`*.grab-lab.gg → 10.0.0.80`)
+3. ⏳ Test local DNS resolution
+4. ⏳ Deploy Caddy reverse proxy container
 
 **Commands (Terraform approach):**
 ```bash
@@ -427,7 +470,7 @@ just tf-plan
 just tf-apply
 
 # 5. Bootstrap secrets
-just bootstrap-container caddy-1 10.0.0.10
+just bootstrap-container caddy-1 10.0.0.80
 
 # 6. Deploy NixOS config
 just deploy-container caddy-1
@@ -439,28 +482,28 @@ just new-container caddy-1
 # Edit containers/caddy-1/configuration.nix
 # Edit containers/caddy-1/proxmox.nix
 just proxmox-create-container caddy-1
-just bootstrap-container caddy-1 10.0.0.10
+just bootstrap-container caddy-1 10.0.0.80
 just deploy-container caddy-1
 ```
 
 ### Phase 2: SSL Certificates
 
 **Tasks:**
-1. Switch domain nameservers to Porkbun defaults
-2. Get Porkbun API credentials (API key + secret key)
+1. Point domain nameservers to Cloudflare
+2. Create Cloudflare API token (DNS edit only, scoped to zone)
 3. Add credentials to SOPS secrets (`secrets/vms/caddy-1.yaml`)
-4. Configure Caddy with Porkbun DNS plugin
+4. Configure Caddy with Cloudflare DNS plugin
 5. Generate wildcard certificate for `*.grab-lab.gg`
 6. Verify HTTPS access with valid certificates
 
-**Porkbun API Setup:**
-- Login to Porkbun dashboard
-- Navigate to API section
-- Generate API key and secret key
+**Cloudflare API Setup:**
+- Login to Cloudflare dashboard
+- Navigate to My Profile → API Tokens
+- Create token with "Edit zone DNS" permission for `grab-lab.gg` zone only
 - Store in SOPS: `sops secrets/vms/caddy-1.yaml`
 
 **Caddy Configuration:**
-- Build Caddy with Porkbun plugin: `xcaddy build --with github.com/caddy-dns/porkbun`
+- Build Caddy with Cloudflare plugin: `xcaddy build --with github.com/caddy-dns/cloudflare`
 - Configure DNS-01 challenge in Caddyfile
 - Certificates auto-renew every ~60 days
 
@@ -528,35 +571,37 @@ just new docker-1
 
 ### PiHole Wildcard DNS
 
-Add to `modules/roles/pihole.nix`:
+Configured in `modules/roles/pihole.nix`:
 
 ```nix
 services.pihole-ftl = {
   settings = {
     misc = {
       dnsmasq_lines = [
-        # Existing upstream DNS servers
+        # Upstream DNS servers
         "server=8.8.8.8"
         "server=8.8.4.4"
-        # Wildcard DNS for grab-lab.gg → reverse proxy
-        "address=/.grab-lab.gg/10.0.0.10"
-        "address=/.grab-lab.dev/10.0.0.10"
-        # Specific subdomains (optional, wildcard covers these)
-        "address=/pihole.grab-lab.gg/10.0.0.53"
-        "address=/caddy.grab-lab.gg/10.0.0.10"
+        # Wildcard DNS for grab-lab.gg → Caddy reverse proxy
+        "address=/.grab-lab.gg/10.0.0.80"
       ];
     };
   };
 };
 ```
 
-### Conditional DNS for VPN Clients
+### DNS Push via NetBird
 
-When NetBird is deployed, configure PiHole to serve different IPs based on client source:
-- **Internal LAN clients**: `*.grab-lab.gg → 10.0.0.10` (Caddy LAN IP)
-- **VPN clients**: `*.grab-lab.gg → 100.64.x.x` (Caddy VPN IP)
+When NetBird is deployed, it pushes Pi-hole (10.0.0.53) as the DNS server to all VPN clients. Combined with subnet routing for 10.0.0.0/24, this ensures:
+- VPN clients use Pi-hole for DNS resolution
+- All `*.grab-lab.gg` subdomains resolve to Caddy (10.0.0.80)
+- Same URLs work identically from home and remotely
 
-This ensures HTTPS works seamlessly for both internal and VPN access.
+### ACL Enforcement (NetBird)
+
+NetBird ACLs enforce least-privilege access:
+- Clients → Pi-hole (TCP/UDP 53) ✅
+- Clients → Caddy (TCP 443) ✅
+- Everything else ❌
 
 ## Caddy Reverse Proxy Configuration
 
@@ -579,17 +624,14 @@ All services accessible via subdomains:
 
 ```caddyfile
 {
-  # Global options
-  acme_dns porkbun {
-    api_key {env.PORKBUN_API_KEY}
-    api_secret_key {env.PORKBUN_SECRET_KEY}
-  }
+  # Global options - Cloudflare DNS-01 ACME
+  acme_dns cloudflare {env.CLOUDFLARE_API_TOKEN}
 }
 
 # Wildcard certificate for all subdomains
 *.grab-lab.gg {
   tls {
-    dns porkbun
+    dns cloudflare {env.CLOUDFLARE_API_TOKEN}
   }
   
   # PiHole admin
@@ -672,21 +714,22 @@ All services accessible via subdomains:
 ## Security Considerations
 
 ### SSL/TLS
-- ✅ **Real certificates**: DNS-01 ACME challenges via Porkbun API
+- ✅ **Real certificates**: DNS-01 ACME challenges via Cloudflare API
 - ✅ **Automatic renewal**: Caddy handles renewal before expiration
 - ✅ **Wildcard support**: Single certificate for all subdomains
 - ✅ **No port forwarding**: DNS validation doesn't require open ports
 
 ### Network Security
-- ✅ **Single entry point**: Only Caddy (port 443) exposed externally
-- ✅ **VPN access**: NetBird mesh VPN for secure remote access
+- ✅ **No public exposure**: Services not accessible from internet
+- ✅ **VPN required**: External access only via NetBird mesh VPN
+- ✅ **Split DNS**: Public resolvers return NXDOMAIN for services
 - ✅ **Internal DNS**: PiHole handles all internal resolution
-- ✅ **Firewall**: Services only accessible via reverse proxy
+- ✅ **ACL enforcement**: NetBird restricts access to DNS and Caddy only
 
 ### Secrets Management
 - ✅ **SOPS + age**: All secrets encrypted in Git
 - ✅ **Per-service secrets**: Each service has its own secret file
-- ✅ **API credentials**: Porkbun API keys stored in SOPS
+- ✅ **API credentials**: Cloudflare API token stored in SOPS
 - ✅ **No hardcoded secrets**: All sensitive data in encrypted files
 - ✅ **Terraform secrets separation**: Infrastructure secrets (`secrets/terraform.yaml`) kept separate from VM/container secrets (`secrets/common.yaml`, `secrets/vms/*.yaml`) to avoid exposing Proxmox credentials to VMs/containers
 
@@ -748,13 +791,13 @@ All services accessible via subdomains:
 ### DNS Issues
 - **Symptom**: Cannot resolve `*.grab-lab.gg` subdomains
 - **Check**: PiHole dnsmasq configuration
-- **Verify**: `dig @10.0.0.53 grafana.grab-lab.gg` should return `10.0.0.10`
+- **Verify**: `dig @10.0.0.53 grafana.grab-lab.gg` should return `10.0.0.80`
 
 ### SSL Certificate Issues
 - **Symptom**: Certificate not issued or expired
-- **Check**: Porkbun API credentials in SOPS secrets
+- **Check**: Cloudflare API token in SOPS secrets
 - **Verify**: Caddy logs for ACME challenge errors
-- **Test**: Manual DNS challenge via Porkbun API
+- **Test**: Check `_acme-challenge.grab-lab.gg` TXT record in Cloudflare
 
 ### VPN Access Issues
 - **Symptom**: Cannot connect via NetBird
@@ -786,12 +829,19 @@ All services accessible via subdomains:
 ## References
 
 - [Caddy DNS-01 Challenge](https://caddyserver.com/docs/automatic-https#dns-challenge)
-- [Porkbun DNS Plugin](https://github.com/caddy-dns/porkbun)
+- [Cloudflare DNS Plugin](https://github.com/caddy-dns/cloudflare)
 - [NetBird Documentation](https://docs.netbird.io/)
 - [PiHole Configuration](https://docs.pi-hole.net/)
 - [NixOS Manual](https://nixos.org/manual/nixos/stable/)
 
 ## Change Log
+
+- **2026-01-25**: Updated architecture for split-DNS and Cloudflare
+  - Changed Caddy IP from 10.0.0.10 to 10.0.0.80
+  - Switched DNS provider from Porkbun to Cloudflare
+  - Added split-DNS architecture section
+  - Documented public vs private DNS records
+  - Updated NetBird configuration with DNS push and ACLs
 
 - **2025-01-24**: Initial architecture document created
   - Defined network architecture and IP allocation

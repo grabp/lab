@@ -31,6 +31,8 @@ in
         dnsmasq_lines = [
           "server=8.8.8.8"
           "server=8.8.4.4"
+          # Wildcard DNS: all *.grab-lab.gg subdomains resolve to Caddy reverse proxy
+          "address=/.grab-lab.gg/10.0.0.80"
         ];
       };
     };
