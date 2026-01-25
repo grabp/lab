@@ -1,6 +1,6 @@
 {
   # Proxmox node IP/hostname
-  node = "10.0.0.20";
+  node = "10.0.0.120";
 
   # Resource limits - optimized for small services
   cores = 2; # Most small services don't need more than 1 core

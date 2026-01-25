@@ -24,6 +24,17 @@
     '';
 
     virtualHosts = {
+      # --- IP / default test endpoint ---
+      "pve.grab-lab.gg" = {
+        extraConfig = ''
+          tls {
+            dns cloudflare {env.CF_API_TOKEN}
+            resolvers 1.1.1.1 1.0.0.1
+          }
+
+          reverse_proxy 10.0.0.50:8006
+        '';
+      };
       "pihole.grab-lab.gg" = {
         extraConfig = ''
           tls {
@@ -41,7 +52,17 @@
             resolvers 1.1.1.1 1.0.0.1
           }
 
-          reverse_proxy 10.0.0.20:9090
+          reverse_proxy 10.0.0.120:9090
+        '';
+      };
+      "grafana.grab-lab.gg" = {
+        extraConfig = ''
+          tls {
+            dns cloudflare {env.CF_API_TOKEN}
+            resolvers 1.1.1.1 1.0.0.1
+          }
+
+          reverse_proxy 10.0.0.121:3000
         '';
       };
 

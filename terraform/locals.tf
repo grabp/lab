@@ -99,7 +99,7 @@ locals {
 
     # # Monitoring Stack
     "prometheus-1" = {
-      ip_address  = "10.0.0.20"
+      ip_address  = "10.0.0.120"
       category    = "monitoring"
       pool        = "monitoring"
       type        = "container"
@@ -111,19 +111,19 @@ locals {
       subdomain   = "prometheus.grab-lab.gg"
       tags        = ["monitoring", "metrics"]
     }
-    # "grafana-1" = {
-    #   ip_address  = "10.0.0.21"
-    #   category    = "monitoring"
-    #   pool        = "monitoring"
-    #   type        = "container"
-    #   cores       = 2
-    #   memory      = 1024
-    #   disk_size   = "10G"
-    #   storage     = var.default_storage
-    #   description = "Grafana dashboards"
-    #   subdomain   = "grafana.grab-lab.gg"
-    #   tags        = ["monitoring", "dashboards"]
-    # }
+    "grafana-1" = {
+      ip_address  = "10.0.0.121"
+      category    = "monitoring"
+      pool        = "monitoring"
+      type        = "container"
+      cores       = 1
+      memory      = 512
+      disk_size   = "3G"
+      storage     = var.default_storage
+      description = "Grafana dashboards"
+      subdomain   = "grafana.grab-lab.gg"
+      tags        = ["monitoring", "dashboards"]
+    }
     # "loki-1" = {
     #   ip_address  = "10.0.0.22"
     #   category    = "monitoring"

@@ -13,7 +13,7 @@ in
 
     address = lib.mkOption {
       type = lib.types.str;
-      example = "10.0.0.20";
+      example = "10.0.0.120";
     };
 
     prefixLength = lib.mkOption {
