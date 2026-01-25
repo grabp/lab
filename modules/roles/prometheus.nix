@@ -23,13 +23,28 @@
       {
         job_name = "nodes";
         static_configs = [
-          # {
-          #   targets = [ "10.0.0.50:9100" ];
-          #   labels = {
-          #     role = "proxmox";
-          #     site = "home";
-          #   };
-          # }
+          {
+            targets = [ "localhost:9100" ];
+            labels = {
+              role = "prometheus";
+              site = "home";
+            };
+          }
+          {
+            targets = [ "10.0.0.53:9100" ];
+            labels = {
+              role = "pihole";
+              site = "home";
+            };
+          }
+          {
+            # This needs node_exporter to be already created on host
+            targets = [ "10.0.0.50:9100" ];
+            labels = {
+              role = "proxmox";
+              site = "home";
+            };
+          }
         ];
       }
 

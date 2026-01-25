@@ -12,6 +12,7 @@
     ../../modules/base/sops-common.nix
     ../../modules/base/ssh.nix
     ../../modules/base/users.nix
+    ../../modules/base/prometheus-exporter.nix
 
     # Networking profile
     ../../modules/profiles/static-ip.nix
