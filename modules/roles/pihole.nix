@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   hasPasswordSecret = config.sops.secrets ? pihole_admin_password;
   secretPath = if hasPasswordSecret then config.sops.secrets.pihole_admin_password.path else null;
@@ -9,13 +14,13 @@ in
   ];
   services.pihole-ftl = {
     enable = true;
-    
+
     # Blocklists are configured via ./pihole-adlists.nix module
     # If Meta products (Instagram, Facebook) have issues, allowlist domains:
     # - CLI: pihole -w domain.com
     # - Web UI: Allowlist → Add domain
     # Common domains: facebook.com, fbcdn.net, instagram.com, cdninstagram.com
-    
+
     settings = {
       DNS1 = "8.8.8.8";
       DNS2 = "8.8.4.4";
@@ -25,6 +30,21 @@ in
       QUERY_LOGGING = "true";
       INSTALL_WEB_SERVER = "true";
       INSTALL_WEB_INTERFACE = "true";
+      dns = {
+        revServers = [ "true,10.0.0.0/24,10.0.0.1" ];
+        rateLimit = {
+          count = 100000;
+        };
+        upstreams = [
+          "1.1.1.1"
+          "1.0.0.1"
+        ];
+        showDNSSEC = true;
+        dnssec = true;
+        CNAMEdeepInspect = true;
+        ignoreLocalhost = true;
+        piholePTR = true;
+      };
       # Add upstream DNS servers as dnsmasq directives
       # DNS1/DNS2 settings alone don't configure dnsmasq upstream servers
       misc = {
@@ -40,7 +60,10 @@ in
 
   services.pihole-web = {
     enable = true;
-    ports = [ 80 443 ];
+    ports = [
+      80
+      443
+    ];
   };
 
   # Set password via environment variable before service starts
@@ -89,12 +112,22 @@ in
         LogLevelMax = "notice";
       };
       # Wait for password setup and secrets mount
-      after = [ "pihole-password-setup.service" "run-secrets.d.mount" ];
-      wants = [ "pihole-password-setup.service" "run-secrets.d.mount" ];
+      after = [
+        "pihole-password-setup.service"
+        "run-secrets.d.mount"
+      ];
+      wants = [
+        "pihole-password-setup.service"
+        "run-secrets.d.mount"
+      ];
     })
   ];
 
-  my.firewall.extraTCPPorts = [ 53 80 443 ];
+  my.firewall.extraTCPPorts = [
+    53
+    80
+    443
+  ];
   my.firewall.extraUDPPorts = [ 53 ];
 
   # Configure systemd-resolved to work with pihole
@@ -107,7 +140,10 @@ in
       DNS=8.8.8.8 8.8.4.4
     '';
     # Fallback DNS servers
-    fallbackDns = [ "1.1.1.1" "1.0.0.1" ];
+    fallbackDns = [
+      "1.1.1.1"
+      "1.0.0.1"
+    ];
     # Don't use LLMNR - let pihole handle DNS
     llmnr = "false";
   };
