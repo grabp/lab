@@ -12,6 +12,8 @@
     ../../modules/base/sops-common.nix
     ../../modules/base/ssh.nix
     ../../modules/base/users.nix
+    ../../modules/base/prometheus-exporter.nix
+    ../../modules/base/promtail.nix
 
     # Networking profile
     ../../modules/profiles/static-ip.nix
@@ -32,4 +34,3 @@
     gateway = "10.0.0.1";
   };
 }
-

@@ -1,0 +1,58 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Prometheus self-scrape
+  - job_name: "prometheus"
+    static_configs:
+      - targets:
+          - "localhost:9090"
+
+  # Node exporters
+  - job_name: "nodes"
+    static_configs:
+      - targets:
+          - "localhost:9100"
+        labels:
+          role: "prometheus"
+          site: "home"
+
+      - targets:
+          - "10.0.0.53:9100"
+        labels:
+          role: "pihole"
+          site: "home"
+
+      - targets:
+          - "10.0.0.80:9100"
+        labels:
+          role: "caddy"
+          site: "home"
+
+      - targets:
+          - "10.0.0.121:9100"
+        labels:
+          role: "grafana"
+          site: "home"
+
+      - targets:
+          - "10.0.0.122:9100"
+        labels:
+          role: "loki"
+          site: "home"
+
+      - targets:
+          - "10.0.0.50:9100"
+        labels:
+          role: "proxmox"
+          site: "home"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - "10.0.0.123:9093"
+
+rule_files:
+  - "/etc/prometheus/rules/*.yml"

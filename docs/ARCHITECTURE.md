@@ -42,7 +42,7 @@ graph TB
             subgraph "Monitoring Stack"
                 Prometheus["Prometheus<br/>10.0.0.120<br/>prometheus.grab-lab.gg"]
                 Grafana["Grafana<br/>10.0.0.121<br/>grafana.grab-lab.gg"]
-                Loki["Loki<br/>10.0.0.22<br/>loki.grab-lab.gg"]
+                Loki["Loki<br/>10.0.0.122<br/>loki.grab-lab.gg"]
             end
             
             subgraph "Services"
@@ -220,7 +220,7 @@ dig ha.grab-lab.gg @8.8.8.8
 | **Monitoring** |
 | Prometheus | 10.0.0.120 | prometheus.grab-lab.gg | Container | 1.5GB | Metrics collection |
 | Grafana | 10.0.0.121 | grafana.grab-lab.gg | Container | 1GB | Dashboards |
-| Loki | 10.0.0.22 | loki.grab-lab.gg | Container | 1.5GB | Log aggregation |
+| Loki | 10.0.0.122 | loki.grab-lab.gg | Container | 1.5GB | Log aggregation |
 | **Services** |
 | Portainer | 10.0.0.30 | portainer.grab-lab.gg | Container | 512MB | Container management |
 | Home Assistant | 10.0.0.31 | home.grab-lab.gg<br/>ha.grab-lab.gg | VM | 2GB | Home automation |
@@ -614,7 +614,7 @@ All services accessible via subdomains:
 | PiHole | pihole.grab-lab.gg | 10.0.0.53 | 80 |
 | Grafana | grafana.grab-lab.gg | 10.0.0.121 | 3000 |
 | Prometheus | prometheus.grab-lab.gg | 10.0.0.120 | 9090 |
-| Loki | loki.grab-lab.gg | 10.0.0.22 | 3100 |
+| Loki | loki.grab-lab.gg | 10.0.0.122 | 3100 |
 | Portainer | portainer.grab-lab.gg | 10.0.0.30 | 9000 |
 | Home Assistant | home.grab-lab.gg<br/>ha.grab-lab.gg | 10.0.0.31 | 8123 |
 | UptimeKuma | status.grab-lab.gg<br/>uptime.grab-lab.gg | 10.0.0.32 | 3001 |
@@ -665,7 +665,7 @@ All services accessible via subdomains:
   # Loki
   @loki host loki.grab-lab.gg
   handle @loki {
-    reverse_proxy http://10.0.0.22:3100 {
+    reverse_proxy http://10.0.0.122:3100 {
       header_up Host {host}
     }
   }

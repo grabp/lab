@@ -13,12 +13,13 @@
     ../../modules/base/ssh.nix
     ../../modules/base/users.nix
     ../../modules/base/prometheus-exporter.nix
+    ../../modules/base/promtail.nix
 
     # Networking profile
     ../../modules/profiles/static-ip.nix
 
     # Roles
-    ../../modules/roles/prometheus.nix
+    ../../modules/roles/prometheus
 
     # Container secrets
     ./secrets.nix

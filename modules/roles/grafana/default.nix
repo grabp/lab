@@ -58,6 +58,12 @@
             isDefault = true;
             editable = false;
           }
+          {
+            name = "Loki";
+            type = "loki";
+            access = "proxy";
+            url = "http://10.0.0.122:3100";
+          }
         ];
       };
 
@@ -84,7 +90,7 @@
     "d /var/lib/grafana/dashboards 0750 grafana grafana -"
   ];
 
-  environment.etc."grafana/dashboards".source = ./grafana-dashboards;
+  environment.etc."grafana/dashboards".source = ./dashboards;
 
   # Firewall: Grafana UI
   my.firewall.extraTCPPorts = [ 3000 ];

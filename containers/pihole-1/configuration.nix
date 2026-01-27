@@ -13,6 +13,7 @@
     ../../modules/base/ssh.nix
     ../../modules/base/users.nix
     ../../modules/base/prometheus-exporter.nix
+    ../../modules/base/promtail.nix
 
     # Networking profile
     ../../modules/profiles/static-ip.nix
