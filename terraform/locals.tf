@@ -124,19 +124,19 @@ locals {
       subdomain   = "grafana.grab-lab.gg"
       tags        = ["monitoring", "dashboards"]
     }
-    # "loki-1" = {
-    #   ip_address  = "10.0.0.22"
-    #   category    = "monitoring"
-    #   pool        = "monitoring"
-    #   type        = "container"
-    #   cores       = 2
-    #   memory      = 1536
-    #   disk_size   = "20G"
-    #   storage     = var.default_storage
-    #   description = "Loki log aggregation"
-    #   subdomain   = "loki.grab-lab.gg"
-    #   tags        = ["monitoring", "logs"]
-    # }
+    "loki-1" = {
+      ip_address  = "10.0.0.122"
+      category    = "monitoring"
+      pool        = "monitoring"
+      type        = "container"
+      cores       = 2
+      memory      = 1536
+      disk_size   = "15G"
+      storage     = var.default_storage
+      description = "Loki log aggregation"
+      subdomain   = "loki.grab-lab.gg"
+      tags        = ["monitoring", "logs"]
+    }
 
     # # Services
     # "portainer-1" = {

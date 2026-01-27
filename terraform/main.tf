@@ -180,3 +180,41 @@ module "grafana_instance" {
     keyctl  = false
   }
 }
+
+# ============================================================================
+# loki-1 Container
+# ============================================================================
+
+# Upload loki-1 NixOS image to Proxmox
+module "loki_image" {
+  source        = "./modules/image-upload"
+  node_name     = local.node_name
+  instance_name = "loki-1"
+  image_type    = "lxc"
+  storage       = "skrzynia-main" # Storage that supports vztmpl
+}
+
+# Create loki-1 LXC container
+module "loki_instance" {
+  source        = "./modules/proxmox-lxc"
+  name          = "loki-1"
+  node_name     = local.node_name
+  description   = local.services["loki-1"].description
+  cores         = local.services["loki-1"].cores
+  memory        = local.services["loki-1"].memory
+  disk_size     = local.services["loki-1"].disk_size
+  storage       = local.services["loki-1"].storage
+  bridge        = local.network.bridge
+  pool_id       = local.services["loki-1"].pool
+  image_file_id = module.loki_image.file_id
+  ip_address    = local.services["loki-1"].ip_address
+  prefix_length = local.network.prefix_length
+  gateway       = local.network.gateway
+  tags          = local.services["loki-1"].tags
+
+  # Only nesting is allowed for non-root API tokens
+  features = {
+    nesting = true
+    keyctl  = false
+  }
+}

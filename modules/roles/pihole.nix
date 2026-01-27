@@ -31,7 +31,6 @@ in
       INSTALL_WEB_SERVER = "true";
       INSTALL_WEB_INTERFACE = "true";
       dns = {
-        revServers = [ "true,10.0.0.0/24,10.0.0.1" ];
         rateLimit = {
           count = 100000;
         };

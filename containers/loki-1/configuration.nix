@@ -19,7 +19,7 @@
     ../../modules/profiles/static-ip.nix
 
     # Roles
-    ../../modules/roles/grafana
+    ../../modules/roles/loki
 
     # Container secrets
     ./secrets.nix
@@ -30,7 +30,7 @@
   # Static IP configuration
   my.networking.staticIPv4 = {
     enable = true;
-    address = "10.0.0.121";
+    address = "10.0.0.122";
     gateway = "10.0.0.1";
   };
 

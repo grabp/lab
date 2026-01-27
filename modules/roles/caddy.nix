@@ -65,6 +65,16 @@
           reverse_proxy 10.0.0.121:3000
         '';
       };
+      "loki.grab-lab.gg" = {
+        extraConfig = ''
+          tls {
+            dns cloudflare {env.CF_API_TOKEN}
+            resolvers 1.1.1.1 1.0.0.1
+          }
+
+          reverse_proxy 10.0.0.122:3100
+        '';
+      };
 
       "*.grab-lab.gg" = {
         extraConfig = ''
