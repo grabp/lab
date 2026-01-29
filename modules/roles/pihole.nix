@@ -22,8 +22,6 @@ in
     # Common domains: facebook.com, fbcdn.net, instagram.com, cdninstagram.com
 
     settings = {
-      DNS1 = "8.8.8.8";
-      DNS2 = "8.8.4.4";
       DHCP_ACTIVE = "false";
       # Password set via FTLCONF_webserver_api_password environment variable
       WEBPASSWORD = "";
@@ -33,6 +31,7 @@ in
       dns = {
         rateLimit = {
           count = 100000;
+          interval = 60;
         };
         upstreams = [
           "1.1.1.1"
@@ -41,15 +40,35 @@ in
         showDNSSEC = true;
         dnssec = true;
         CNAMEdeepInspect = true;
-        ignoreLocalhost = true;
+        ignoreLocalhost = false;
         piholePTR = true;
+        listeningMode = "all";
+        cache = {
+          size = 10000;
+        };
       };
-      # Add upstream DNS servers as dnsmasq directives
-      # DNS1/DNS2 settings alone don't configure dnsmasq upstream servers
+      dhcp = {
+        active = true;
+
+        # IPv4 DHCP range
+        start = "10.0.0.2";
+        end = "10.0.0.49";
+
+        # Network parameters
+        router = "10.0.0.1";
+        domain = "grab-lab.gg";
+
+        # Lease time
+        leaseTime = "24h";
+
+        # Pi-hole is authoritative DHCP server
+        authoritative = true;
+
+        # Explicitly disable IPv6 DHCP / RA
+        ipv6 = false;
+      };
       misc = {
         dnsmasq_lines = [
-          "server=8.8.8.8"
-          "server=8.8.4.4"
           # Wildcard DNS: all *.grab-lab.gg subdomains resolve to Caddy reverse proxy
           "address=/.grab-lab.gg/10.0.0.80"
         ];
@@ -127,7 +146,10 @@ in
     80
     443
   ];
-  my.firewall.extraUDPPorts = [ 53 ];
+  my.firewall.extraUDPPorts = [
+    53
+    67
+  ];
 
   # Configure systemd-resolved to work with pihole
   # Disable DNS stub listener to free up port 53 for pihole-FTL

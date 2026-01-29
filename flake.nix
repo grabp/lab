@@ -18,10 +18,11 @@
   };
 
   outputs =
-    { self
-    , nixpkgs
-    , nixos-generators
-    , ...
+    {
+      self,
+      nixpkgs,
+      nixos-generators,
+      ...
     }@inputs:
     let
       system = "x86_64-linux";
@@ -36,8 +37,7 @@
       );
 
       # Read ./containers directory (if it exists)
-      containersDir =
-        if builtins.pathExists ./containers then builtins.readDir ./containers else { };
+      containersDir = if builtins.pathExists ./containers then builtins.readDir ./containers else { };
 
       # Keep only directories except for template/
       containerNames = lib.attrNames (
@@ -105,9 +105,7 @@
       };
 
       # ---- NixOS configurations (nixos-rebuild, remote updates)
-      nixosConfigurations =
-        (lib.genAttrs vmNames mkVm)
-        // (lib.genAttrs containerNames mkContainer);
+      nixosConfigurations = (lib.genAttrs vmNames mkVm) // (lib.genAttrs containerNames mkContainer);
 
       # ---- Proxmox VM images (nixos-generators)
       packages.${system} =
