@@ -1,3 +1,6 @@
+> [!NOTE]
+> This repo is now archived. I stumbled upon some Proxmox's limitations (mainly its terraform API) and decided that NixOS containers for each service are a bit of an overkill, don't work reliably enough for the amount of effort and I'll be moving to a different architecture altogether.
+
 # NixOS Proxmox Infrastructure
 
 Declarative NixOS configuration for managing Proxmox VMs and LXC containers.
